@@ -21,9 +21,9 @@ class GitExporter(BaseExporter):
         self.repo.index.write()
         return str(node.identifier)
 
-    def save_edge(self, node_id, parent_id, edge_type):
+    def save_edge(self, node_id, edge_type, parent_id):
         """
-        Save the edge information along with the branch details to a csv file.
+        Save the edge information to a csv file.
         :param parent_id:
         :param node_id:
         :param edge_type:
@@ -34,10 +34,11 @@ class GitExporter(BaseExporter):
             df_existing = pd.read_csv(f"{self.repo_path}/edges.csv")
         except FileNotFoundError:
             df_existing = pd.DataFrame()
+
         df_new = pd.DataFrame([{
             "node_id": node_id,
-            "parent_id": parent_id,
-            "edge_type": edge_type
+            "edge_type": edge_type,
+            "parent_id": parent_id
         }])
         df_merged = pd.concat([df_existing, df_new]).drop_duplicates(subset=["node_id"], keep="last")
         df_merged.to_csv(f"{self.repo_path}/edges.csv", index=False)
@@ -48,7 +49,7 @@ class GitExporter(BaseExporter):
         for node_id in tree.expand_tree():
             node = tree[node_id]
             node_id = self.save_node(node)
-            self.save_edge(node_id, node.predecessor(tree.identifier), "isParentOf", **kwargs)
+            self.save_edge(node_id, "isChildOf", node.predecessor(tree.identifier))
 
         # Everything is staged, now we can commit
         author = Signature(kwargs.get("author_name", "Viddu Devigere"), kwargs.get("author_email", "viddu@kiddom.co"))
@@ -62,7 +63,7 @@ class GitExporter(BaseExporter):
         if branch_name != "main":
             self.repo.create_branch(branch_name, self.repo.get(commit_oid))
 
-    def loadTree(self) -> Tree:
+    def loadTree(self, branch_name: str) -> Tree:
         pass
 
     def __init__(self, repo_path):
