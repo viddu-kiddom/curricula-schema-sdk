@@ -3,7 +3,7 @@ import pygit2
 from pygit2 import Signature
 from treelib import Tree
 
-from curricula_schema_sdk.exporters.base_exporter import BaseExporter
+from curricula_schema_sdk.exporters.base_exporter import BaseExporter, EdgeType
 
 
 class GitExporter(BaseExporter):
@@ -21,7 +21,7 @@ class GitExporter(BaseExporter):
         self.repo.index.write()
         return str(node.identifier)
 
-    def save_edge(self, node_id, edge_type, parent_id):
+    def save_edge(self, node_id: str, edge_type: EdgeType = EdgeType.IS_CHILD_OF, parent_id: str = None):
         """
         Save the edge information to a csv file.
         :param parent_id:
@@ -48,8 +48,8 @@ class GitExporter(BaseExporter):
     def export(self, tree: Tree, **kwargs):
         for node_id in tree.expand_tree():
             node = tree[node_id]
-            node_id = self.save_node(node)
-            self.save_edge(node_id, "isChildOf", node.predecessor(tree.identifier))
+            save_id = self.save_node(node)
+            self.save_edge(save_id, EdgeType.IS_CHILD_OF, node.predecessor(tree.identifier))
 
         # Everything is staged, now we can commit
         author = Signature(kwargs.get("author_name", "Viddu Devigere"), kwargs.get("author_email", "viddu@kiddom.co"))
