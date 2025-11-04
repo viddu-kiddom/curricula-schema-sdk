@@ -49,7 +49,17 @@ class TestGitExporter(TestCase):
 
     def test_export(self):
         exporter = GitExporter("./repo")
-        exporter.export(self.tree, commit_message="national course")
-        course_node = self.tree.get_node(self.tree.root)
+        exporter.export(self.tree, commit_message="national course", branch_name="national")
+
+        spanish_tree = self.tree
+        course_node = spanish_tree.get_node(spanish_tree.root)
         course_node.data.title = "IM-TK-Spanish"
-        exporter.export(self.tree, message="spanish course")
+        course_id = course_node.identifier
+
+        # Unit 3
+        unit_id = uuid.uuid4()
+        spanish_tree.create_node(tag="IM-TK-unit3", identifier=str(unit_id), parent=str(course_id), data=Unit(
+            title="Unit 3",
+            unit_number=unit_id
+        ))
+        exporter.export(spanish_tree, commit_message="spanish course", branch_name="spanish")
