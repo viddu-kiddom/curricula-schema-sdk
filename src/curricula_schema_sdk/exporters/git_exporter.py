@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 import pygit2
 from pygit2 import Signature
@@ -66,6 +68,9 @@ class GitExporter(BaseExporter):
     def loadTree(self, branch_name: str) -> Tree:
         pass
 
-    def __init__(self, repo_path):
+    def __init__(self, repo_path: Path | str):
+        if isinstance(repo_path, str):
+            repo_path = Path(repo_path)
+
         self.repo_path = repo_path
         self.repo = pygit2.init_repository(repo_path, False)

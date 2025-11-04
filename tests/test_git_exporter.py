@@ -40,10 +40,10 @@ class TestGitExporter(TestCase):
         self.tree = tree
 
     def test_init(self):
-        GitExporter("./repo", "test")
+        GitExporter("./repo")
 
     def test_save_node(self):
-        exporter = GitExporter("./repo", "test")
+        exporter = GitExporter("./repo")
         course_node = self.tree.get_node(self.tree.root)
         exporter.save_node(course_node)
 
