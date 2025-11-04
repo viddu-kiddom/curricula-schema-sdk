@@ -1,3 +1,4 @@
+import pandas as pd
 import pygit2
 from pygit2 import Signature
 from treelib import Tree
@@ -7,7 +8,7 @@ from curricula_schema_sdk.exporters.base_exporter import BaseExporter
 
 class GitExporter(BaseExporter):
 
-    def save_node(self, node, **kwargs) -> str:
+    def save_node(self, node) -> str:
         """
         Save the node to the repo as .json files
         :param node:
@@ -20,16 +21,26 @@ class GitExporter(BaseExporter):
         self.repo.index.write()
         return str(node.identifier)
 
-    def save_edge(self, parent_id, child_id, edge_type, **kwargs):
+    def save_edge(self, node_id, parent_id, edge_type):
         """
         Save the edge information along with the branch details to a csv file.
         :param parent_id:
-        :param child_id:
+        :param node_id:
         :param edge_type:
         :return:
         """
-        with open(f"{self.repo_path}/edges.csv", "a") as f:
-            f.write(f"{parent_id},{child_id},{edge_type},{kwargs.get("branch_name")}\n")
+        # Load existing data
+        try:
+            df_existing = pd.read_csv(f"{self.repo_path}/edges.csv")
+        except FileNotFoundError:
+            df_existing = pd.DataFrame()
+        df_new = pd.DataFrame([{
+            "node_id": node_id,
+            "parent_id": parent_id,
+            "edge_type": edge_type
+        }])
+        df_merged = pd.concat([df_existing, df_new]).drop_duplicates(subset=["node_id"], keep="last")
+        df_merged.to_csv(f"{self.repo_path}/edges.csv", index=False)
         self.repo.index.add("edges.csv")
         self.repo.index.write()
 
@@ -37,8 +48,9 @@ class GitExporter(BaseExporter):
         for node_id in tree.expand_tree():
             node = tree[node_id]
             node_id = self.save_node(node)
-            self.save_edge(node.predecessor(tree.identifier), node_id, "isParentOf", **kwargs)
+            self.save_edge(node_id, node.predecessor(tree.identifier), "isParentOf", **kwargs)
 
+        # Everything is staged, now we can commit
         author = Signature(kwargs.get("author_name", "Viddu Devigere"), kwargs.get("author_email", "viddu@kiddom.co"))
         committer = author
         message = kwargs.get("commit_message", "Initial commit")

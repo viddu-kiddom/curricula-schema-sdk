@@ -10,7 +10,7 @@ class BaseExporter(ABC):
         pass
 
     @abstractmethod
-    def save_edge(self, parent_id, child_id, edge_type):
+    def save_edge(self, node_id, parent_id, edge_type):
         pass
 
     def export(self, tree: Tree, **kwargs):
