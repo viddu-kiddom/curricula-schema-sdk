@@ -19,7 +19,7 @@ class GitExporter(BaseExporter):
 
     def save_edge(self, parent_id, child_id, edge_type):
         with open(f"{self.repo_path}/edges.csv", "a") as f:
-            f.write(f"{parent_id},{child_id},{edge_type}\n")
+            f.write(f"{parent_id},{child_id},{edge_type},{self.branch_name}\n")
         self.repo.index.add("edges.csv")
         self.repo.index.write()
 
@@ -28,9 +28,10 @@ class GitExporter(BaseExporter):
             node = tree[node_id]
             rev_id = self.save_node(node)
             self.save_edge(node.predecessor(tree.identifier), rev_id, "isParentOf")
-        author = Signature('Viddu Devigere', 'viddu@kiddom.co')
+
+        author = Signature(kwargs.get("author_name", "Viddu Devigere"), kwargs.get("author_email", "viddu@kiddom.co"))
         committer = author
-        message = kwargs.get("message", "Initial commit")
+        message = kwargs.get("commit_message", "Initial commit")
         tree = self.repo.index.write_tree()
         commit_oid = self.repo.create_commit(self.head_ref, author, committer, message, tree, self.parents)
         commit = self.repo.get(commit_oid)
