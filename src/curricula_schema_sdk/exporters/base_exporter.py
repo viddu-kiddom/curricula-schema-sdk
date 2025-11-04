@@ -13,7 +13,7 @@ class BaseExporter(ABC):
     def save_edge(self, parent_id, child_id, edge_type):
         pass
 
-    def export(self, tree: Tree):
+    def export(self, tree: Tree, **kwargs):
         for node_id in tree.expand_tree():
             node = tree[node_id]
             rev_id = self.save_node(node)
