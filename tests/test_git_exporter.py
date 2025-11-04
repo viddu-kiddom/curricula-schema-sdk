@@ -15,7 +15,7 @@ class TestGitExporter(TestCase):
 
         # Course
         course_id = uuid.uuid4()
-        tree.create_node(tag="IM-TK", identifier=str(course_id), data=Course(
+        tree.create_node(tag="IM-TK", identifier="IM-TK", data=Course(
             subject="IM-TK",
             grade_level="tk",
             curricula_id=course_id,
@@ -26,14 +26,14 @@ class TestGitExporter(TestCase):
 
         # Unit 1
         unit_id = uuid.uuid4()
-        tree.create_node(tag="IM-TK-unit1", identifier=str(unit_id), parent=str(course_id), data=Unit(
+        tree.create_node(tag="IM-TK-unit1", identifier="IM-TK-unit1", parent="IM-TK", data=Unit(
             title="Unit 1",
             unit_number=unit_id
         ))
 
         # Unit 2
         unit_id = uuid.uuid4()
-        tree.create_node(tag="IM-TK-unit2", identifier=str(unit_id), parent=str(course_id), data=Unit(
+        tree.create_node(tag="IM-TK-unit2", identifier="IM-TK-unit2", parent="IM-TK", data=Unit(
             title="Unit 2",
             unit_number=unit_id
         ))
@@ -48,9 +48,13 @@ class TestGitExporter(TestCase):
         exporter.save_node(course_node)
 
     def test_export(self):
+        # Save original tree as national tree
         exporter = GitExporter("./repo")
         exporter.export(self.tree, commit_message="national course", branch_name="national")
 
+        # Modify national tree with a new commit
+
+        # Save spanish tree from national tree.
         spanish_tree = self.tree
         course_node = spanish_tree.get_node(spanish_tree.root)
         course_node.data.title = "IM-TK-Spanish"
@@ -58,7 +62,7 @@ class TestGitExporter(TestCase):
 
         # Unit 3
         unit_id = uuid.uuid4()
-        spanish_tree.create_node(tag="IM-TK-unit3", identifier=str(unit_id), parent=str(course_id), data=Unit(
+        spanish_tree.create_node(tag="IM-TK-unit3-spanish", identifier="IM-TK-unit3-spanish", parent=str(course_id), data=Unit(
             title="Unit 3",
             unit_number=unit_id
         ))
