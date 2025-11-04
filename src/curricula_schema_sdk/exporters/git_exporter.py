@@ -1,5 +1,3 @@
-from wsgiref.validate import header_re
-
 import pygit2
 from pygit2 import Signature
 from treelib import Tree
