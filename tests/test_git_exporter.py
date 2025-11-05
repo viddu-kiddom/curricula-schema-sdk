@@ -1,3 +1,4 @@
+import copy
 import uuid
 from unittest import TestCase
 
@@ -10,7 +11,7 @@ from curricula_schema_sdk.unit import Unit
 
 class TestGitExporter(TestCase):
 
-    def setUp(self):
+    def build_tree(self) -> Tree:
         tree = Tree()
 
         # Course
@@ -37,33 +38,33 @@ class TestGitExporter(TestCase):
             title="Unit 2",
             unit_number=unit_id
         ))
-        self.tree = tree
-
-    def test_init(self):
-        GitExporter("./repo")
-
-    def test_save_node(self):
-        exporter = GitExporter("./repo")
-        course_node = self.tree.get_node(self.tree.root)
-        exporter.save_node(course_node)
+        return tree
 
     def test_export(self):
+        national_tree = self.build_tree()
         # Save original tree as national tree
-        exporter = GitExporter("./repo")
-        exporter.export(self.tree, commit_message="national course", branch_name="national")
-
-        # Modify national tree with a new commit
+        national_oid = GitExporter("./repo").export(national_tree, commit_message="national course", branch_name="national")
 
         # Save spanish tree from national tree.
-        spanish_tree = self.tree
+        spanish_tree = copy.deepcopy(national_tree)
         course_node = spanish_tree.get_node(spanish_tree.root)
         course_node.data.title = "IM-TK-Spanish"
         course_id = course_node.identifier
 
         # Unit 3
         unit_id = uuid.uuid4()
-        spanish_tree.create_node(tag="IM-TK-unit3-spanish", identifier="IM-TK-unit3-spanish", parent=str(course_id), data=Unit(
-            title="Unit 3",
-            unit_number=unit_id
-        ))
-        exporter.export(spanish_tree, commit_message="spanish course", branch_name="spanish")
+        spanish_tree.create_node(tag="IM-TK-unit3-spanish", identifier="IM-TK-unit3-spanish", parent=str(course_id),
+                                 data=Unit(
+                                     title="Unit 3",
+                                     unit_number=unit_id
+                                 ))
+        GitExporter("./repo", base_commit_oid=national_oid).export(spanish_tree, commit_message="spanish course",
+                                                                   branch_name="spanish")
+
+        # Modify national tree with a new commit
+        modified_national_tree = copy.deepcopy(national_tree)
+        course_node = modified_national_tree.get_node(modified_national_tree.root)
+        course_node.data.title = "IM-TK-Modified"
+        GitExporter("./repo", base_commit_oid=national_oid).export(modified_national_tree,
+                                                                   commit_message="modified course",
+                                                                   branch_name="national")

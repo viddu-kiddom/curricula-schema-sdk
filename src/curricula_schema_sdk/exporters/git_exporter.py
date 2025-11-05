@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import pygit2
-from pygit2 import Signature
+from pygit2 import Signature, Oid
 from treelib import Tree
 
 from curricula_schema_sdk.exporters.base_exporter import BaseExporter, EdgeType
@@ -19,8 +19,8 @@ class GitExporter(BaseExporter):
         data = node.data
         with open(f"{self.repo_path}/{node.identifier}.json", "w") as f:
             f.write(data.model_dump_json(indent=2))
-        self.repo.index.add(f"{node.identifier}.json")
-        self.repo.index.write()
+        self.index.add(f"{node.identifier}.json")
+        self.index.write()
         return str(node.identifier)
 
     def save_edge(self, node_id: str, edge_type: EdgeType = EdgeType.IS_CHILD_OF, parent_id: str = None):
@@ -44,8 +44,8 @@ class GitExporter(BaseExporter):
         }])
         df_merged = pd.concat([df_existing, df_new]).drop_duplicates(subset=["node_id"], keep="last")
         df_merged.to_csv(f"{self.repo_path}/edges.csv", index=False)
-        self.repo.index.add("edges.csv")
-        self.repo.index.write()
+        self.index.add("edges.csv")
+        self.index.write()
 
     def export(self, tree: Tree, **kwargs):
         for node_id in tree.expand_tree():
@@ -53,24 +53,32 @@ class GitExporter(BaseExporter):
             save_id = self.save_node(node)
             self.save_edge(save_id, EdgeType.IS_CHILD_OF, node.predecessor(tree.identifier))
 
+        tree = self.index.write_tree()
+
         # Everything is staged, now we can commit
         author = Signature(kwargs.get("author_name", "Viddu Devigere"), kwargs.get("author_email", "viddu@kiddom.co"))
         committer = author
         message = kwargs.get("commit_message", "Initial commit")
-        tree = self.repo.index.write_tree()
-        head = "HEAD" if self.repo.head_is_unborn else self.repo.head.name
-        parents = [] if self.repo.head_is_unborn else [self.repo.head.target]
-        commit_oid = self.repo.create_commit(head, author, committer, message, tree, parents)
+
         branch_name = kwargs.get("branch_name", "main")
-        if branch_name != "main":
-            self.repo.create_branch(branch_name, self.repo.get(commit_oid))
+        head = "HEAD" if self.repo.head_is_unborn else f"refs/heads/{branch_name}"
+        parents = [] if self.base_commit_oid is None else [self.base_commit_oid]
+        commit_oid = self.repo.create_commit(head, author, committer, message, tree, parents)
+        return commit_oid
 
-    def loadTree(self, branch_name: str) -> Tree:
-        pass
+    def __init__(self, repo_path: Path | str, base_commit_oid: Oid = None):
+        self.base_commit_oid = base_commit_oid
 
-    def __init__(self, repo_path: Path | str):
         if isinstance(repo_path, str):
             repo_path = Path(repo_path)
-
         self.repo_path = repo_path
-        self.repo = pygit2.init_repository(repo_path, False)
+
+        repo = pygit2.init_repository(repo_path, False)
+        self.repo = repo
+
+        index = repo.index
+        self.index = index
+
+        if base_commit_oid:
+            base_commit = repo.get(base_commit_oid)
+            index.read_tree(base_commit.tree)
