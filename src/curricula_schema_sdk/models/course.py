@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from curricula_schema_sdk.BaseCurriculaModel import BaseCurriculaModel
+from curricula_schema_sdk.models.BaseCurriculaModel import BaseCurriculaModel
 
 
 class Course(BaseCurriculaModel):

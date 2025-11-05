@@ -4,9 +4,9 @@ from unittest import TestCase
 
 from treelib import Tree
 
-from curricula_schema_sdk.course import Course
 from curricula_schema_sdk.exporters.git_exporter import GitExporter
-from curricula_schema_sdk.unit import Unit
+from curricula_schema_sdk.models.course import Course
+from curricula_schema_sdk.models.unit import Unit
 
 
 class TestGitExporter(TestCase):
