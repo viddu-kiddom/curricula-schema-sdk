@@ -56,6 +56,7 @@ class GitExporter(BaseExporter):
         base_commit_oid = kwargs.get("base_commit_oid")
         if base_commit_oid:
             base_commit = self.repo.get(base_commit_oid)
+            # self.index.read_tree(base_commit.tree)
             # 2) Create a branch at that commit (fails if it exists already)
             try:
                 self.repo.create_branch(branch_name, base_commit)
@@ -63,7 +64,7 @@ class GitExporter(BaseExporter):
                 pass  # branch already exists
             # 3) Check out the new branch into the working tree
             self.repo.set_head(f"refs/heads/{branch_name}")
-            self.repo.checkout_tree(base_commit)
+            self.repo.checkout_tree(base_commit, strategy=pygit2.GIT_CHECKOUT_FORCE)
 
 
         for node_id in tree.expand_tree():
@@ -78,12 +79,11 @@ class GitExporter(BaseExporter):
         committer = author
 
         head = "HEAD" if self.repo.head_is_unborn else f"refs/heads/{branch_name}"
-        parents = [] if self.base_commit_oid is None else [self.base_commit_oid]
+        parents = [] if base_commit_oid is None else [base_commit_oid]
         commit_oid = self.repo.create_commit(head, author, committer, commit_message, tree, parents)
         return commit_oid
 
-    def __init__(self, repo_path: Path | str, base_commit_oid: Oid = None):
-        self.base_commit_oid = base_commit_oid
+    def __init__(self, repo_path: Path | str):
 
         if isinstance(repo_path, str):
             repo_path = Path(repo_path)

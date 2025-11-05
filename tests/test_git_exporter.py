@@ -41,9 +41,11 @@ class TestGitExporter(TestCase):
         return tree
 
     def test_export(self):
+        exporter = GitExporter("./repo")
+
         national_tree = self.build_tree()
         # Save original tree as national tree
-        national_oid = GitExporter("./repo").export(national_tree, commit_message="national course", branch_name="national")
+        national_oid = exporter.export(national_tree, commit_message="national course", branch_name="national")
 
         # Save spanish tree from national tree.
         spanish_tree = copy.deepcopy(national_tree)
@@ -58,13 +60,12 @@ class TestGitExporter(TestCase):
                                      title="Unit 3",
                                      unit_number=unit_id
                                  ))
-        GitExporter("./repo", base_commit_oid=national_oid).export(spanish_tree, commit_message="spanish course",
-                                                                   branch_name="spanish")
+        exporter.export(spanish_tree, commit_message="spanish course", branch_name="spanish",
+                        base_commit_oid=national_oid)
 
         # Modify national tree with a new commit
         modified_national_tree = copy.deepcopy(national_tree)
         course_node = modified_national_tree.get_node(modified_national_tree.root)
         course_node.data.title = "IM-TK-Modified"
-        GitExporter("./repo", base_commit_oid=national_oid).export(modified_national_tree,
-                                                                   commit_message="modified course",
-                                                                   branch_name="national")
+        exporter.export(modified_national_tree, commit_message="modified course", branch_name="national",
+                        base_commit_oid=national_oid)
