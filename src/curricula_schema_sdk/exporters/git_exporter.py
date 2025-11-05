@@ -48,6 +48,12 @@ class GitExporter(BaseExporter):
         self.index.write()
 
     def export(self, tree: Tree, **kwargs):
+        # Collect kwargs
+        author_name = kwargs.get("author_name", "Viddu Devigere")
+        author_email = kwargs.get("author_email", "viddu@kiddom.co")
+        commit_message = kwargs.get("commit_message", "Initial commit")
+        branch_name = kwargs.get("branch_name", "main")
+
         for node_id in tree.expand_tree():
             node = tree[node_id]
             save_id = self.save_node(node)
@@ -56,14 +62,12 @@ class GitExporter(BaseExporter):
         tree = self.index.write_tree()
 
         # Everything is staged, now we can commit
-        author = Signature(kwargs.get("author_name", "Viddu Devigere"), kwargs.get("author_email", "viddu@kiddom.co"))
+        author = Signature(author_name, author_email)
         committer = author
-        message = kwargs.get("commit_message", "Initial commit")
 
-        branch_name = kwargs.get("branch_name", "main")
         head = "HEAD" if self.repo.head_is_unborn else f"refs/heads/{branch_name}"
         parents = [] if self.base_commit_oid is None else [self.base_commit_oid]
-        commit_oid = self.repo.create_commit(head, author, committer, message, tree, parents)
+        commit_oid = self.repo.create_commit(head, author, committer, commit_message, tree, parents)
         return commit_oid
 
     def __init__(self, repo_path: Path | str, base_commit_oid: Oid = None):
