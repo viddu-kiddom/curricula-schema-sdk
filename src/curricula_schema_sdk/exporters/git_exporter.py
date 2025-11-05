@@ -53,6 +53,18 @@ class GitExporter(BaseExporter):
         author_email = kwargs.get("author_email", "viddu@kiddom.co")
         commit_message = kwargs.get("commit_message", "Initial commit")
         branch_name = kwargs.get("branch_name", "main")
+        base_commit_oid = kwargs.get("base_commit_oid")
+        if base_commit_oid:
+            base_commit = self.repo.get(base_commit_oid)
+            # 2) Create a branch at that commit (fails if it exists already)
+            try:
+                self.repo.create_branch(branch_name, base_commit)
+            except KeyError:
+                pass  # branch already exists
+            # 3) Check out the new branch into the working tree
+            self.repo.set_head(f"refs/heads/{branch_name}")
+            self.repo.checkout_tree(base_commit)
+
 
         for node_id in tree.expand_tree():
             node = tree[node_id]
@@ -83,6 +95,3 @@ class GitExporter(BaseExporter):
         index = repo.index
         self.index = index
 
-        if base_commit_oid:
-            base_commit = repo.get(base_commit_oid)
-            index.read_tree(base_commit.tree)
