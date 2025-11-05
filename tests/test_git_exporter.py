@@ -41,7 +41,7 @@ class TestGitExporter(TestCase):
         return tree
 
     def test_export(self):
-        exporter = GitExporter("./repo")
+        exporter = GitExporter("./repo", author_name="Viddu Devigere", author_email="viddu@kiddom.co")
 
         national_tree = self.build_tree()
         # Save original tree as national tree

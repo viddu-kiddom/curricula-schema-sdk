@@ -1,11 +1,15 @@
+import logging
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pygit2
-from pygit2 import Signature, Oid
+from pygit2 import Signature
 from treelib import Tree
 
 from curricula_schema_sdk.exporters.base_exporter import BaseExporter, EdgeType
+
+logger = logging.getLogger(__name__)
 
 
 class GitExporter(BaseExporter):
@@ -49,23 +53,10 @@ class GitExporter(BaseExporter):
 
     def export(self, tree: Tree, **kwargs):
         # Collect kwargs
-        author_name = kwargs.get("author_name", "Viddu Devigere")
-        author_email = kwargs.get("author_email", "viddu@kiddom.co")
         commit_message = kwargs.get("commit_message", "Initial commit")
         branch_name = kwargs.get("branch_name", "main")
         base_commit_oid = kwargs.get("base_commit_oid")
-        if base_commit_oid:
-            base_commit = self.repo.get(base_commit_oid)
-            # self.index.read_tree(base_commit.tree)
-            # 2) Create a branch at that commit (fails if it exists already)
-            try:
-                self.repo.create_branch(branch_name, base_commit)
-            except KeyError:
-                pass  # branch already exists
-            # 3) Check out the new branch into the working tree
-            self.repo.set_head(f"refs/heads/{branch_name}")
-            self.repo.checkout_tree(base_commit, strategy=pygit2.GIT_CHECKOUT_FORCE)
-
+        self.create_and_checkout_branch(base_commit_oid, branch_name)
 
         for node_id in tree.expand_tree():
             node = tree[node_id]
@@ -75,7 +66,7 @@ class GitExporter(BaseExporter):
         tree = self.index.write_tree()
 
         # Everything is staged, now we can commit
-        author = Signature(author_name, author_email)
+        author = Signature(self.author_name, self.author_email)
         committer = author
 
         head = "HEAD" if self.repo.head_is_unborn else f"refs/heads/{branch_name}"
@@ -83,15 +74,30 @@ class GitExporter(BaseExporter):
         commit_oid = self.repo.create_commit(head, author, committer, commit_message, tree, parents)
         return commit_oid
 
-    def __init__(self, repo_path: Path | str):
+    def create_and_checkout_branch(self, base_commit_oid: Any | None, branch_name: str):
+        if base_commit_oid:
+            base_commit = self.repo.get(base_commit_oid)
+            # self.index.read_tree(base_commit.tree)
+            # 2) Create a branch at that commit (fails if it exists already)
+            try:
+                self.repo.create_branch(branch_name, base_commit)
+            except KeyError:
+                logger.warning(f"Branch {branch_name} already exists. Skipping.")
+                pass  # branch already exists
+            # 3) Check out the new branch into the working tree
+            self.repo.set_head(f"refs/heads/{branch_name}")
+            self.repo.checkout_tree(base_commit, strategy=pygit2.GIT_CHECKOUT_FORCE)
+
+    def __init__(self, repo_path: Path | str, author_name: str, author_email: str):
 
         if isinstance(repo_path, str):
             repo_path = Path(repo_path)
         self.repo_path = repo_path
+        self.author_name = author_name
+        self.author_email = author_email
 
         repo = pygit2.init_repository(repo_path, False)
         self.repo = repo
 
         index = repo.index
         self.index = index
-
